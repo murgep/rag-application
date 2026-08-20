@@ -1,0 +1,12 @@
+fastapi
+uvicorn
+python-dotenv
+pydantic
+pypdf
+python-docx
+pymupdf
+pytesseract
+sentence-transformers
+google-genai
+numpy
+psycopg[binary]
