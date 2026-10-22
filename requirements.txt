@@ -9,4 +9,5 @@ pytesseract
 sentence-transformers
 google-genai
 numpy
+pytest
 psycopg[binary]

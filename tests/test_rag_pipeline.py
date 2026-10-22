@@ -1,9 +1,15 @@
+
 from app.models.schemas import DocumentChunk
 from app.rag.pipeline import RAGPipeline
-
+import logging
 
 class FakeRetriever:
-    def retrieve(self, query: str, top_k: int = 3):
+    def retrieve(
+        self,
+        query: str,
+        top_k: int = 3,
+        department: str | None = None,
+    ):
         return [
             (
                 DocumentChunk(
@@ -19,19 +25,37 @@ class FakeRetriever:
         ]
 
 
+class DepartmentTrackingRetriever:
+    def __init__(self):
+        self.received_department = None
+
+    def retrieve(
+        self,
+        query: str,
+        top_k: int = 3,
+        department: str | None = None,
+    ):
+        self.received_department = department
+        return []
+
+
 class FakeGenerator:
     def generate(self, question: str, context: str):
         assert question == (
             "How many annual leave days do employees receive?"
         )
-
         assert "24 days of paid annual leave" in context
 
         return "Employees receive 24 days of paid annual leave."
 
 
 class LowSimilarityRetriever:
-    def retrieve(self, query: str, top_k: int = 3):
+    def retrieve(
+        self,
+        query: str,
+        top_k: int = 3,
+        department: str | None = None,
+    ):
         return [
             (
                 DocumentChunk(
@@ -55,8 +79,24 @@ class FailingGenerator:
         )
 
 
-def test_rag_pipeline():
+def test_rag_pipeline_forwards_department():
+    retriever = DepartmentTrackingRetriever()
+    generator = FailingGenerator()
 
+    rag = RAGPipeline(
+        retriever=retriever,
+        generator=generator,
+    )
+
+    rag.ask(
+        question="What is the leave policy?",
+        department="HR",
+    )
+
+    assert retriever.received_department == "HR"
+
+
+def test_rag_pipeline():
     retriever = FakeRetriever()
     generator = FakeGenerator()
 
@@ -69,33 +109,11 @@ def test_rag_pipeline():
         "How many annual leave days do employees receive?"
     )
 
-    print("\nRAG Answer:")
-    print(response.answer)
-
-    print("\nSources:")
-
-    for source in response.sources:
-        print(
-            f"Document ID: {source.document_id}"
-        )
-        print(
-            f"Source: {source.source}"
-        )
-        print(
-            f"Page: {source.page_number}"
-        )
-        print(
-            f"Similarity: {source.similarity}"
-        )
-
-    # Verify generated answer
     assert response.answer == (
         "Employees receive 24 days of paid annual leave."
     )
 
-    # Verify source information
     assert len(response.sources) == 1
-
     assert response.sources[0].document_id == "hr-policy"
     assert response.sources[0].source == "hr_policy.pdf"
     assert response.sources[0].page_number == 2
@@ -103,7 +121,6 @@ def test_rag_pipeline():
 
 
 def test_rag_pipeline_with_no_relevant_results():
-
     retriever = LowSimilarityRetriever()
     generator = FailingGenerator()
 
@@ -117,17 +134,59 @@ def test_rag_pipeline_with_no_relevant_results():
         similarity_threshold=0.70,
     )
 
-    print("\nFallback Answer:")
-    print(response.answer)
-
-    print("\nSources:")
-    print(response.sources)
-
-    # Verify safe fallback
     assert response.answer == (
         "I don't have enough information in the provided "
         "documents to answer this question."
     )
 
-    # No sources should be returned
     assert response.sources == []
+
+
+def test_rag_pipeline_with_empty_retrieval_results():
+    retriever = DepartmentTrackingRetriever()
+    generator = FailingGenerator()
+
+    rag = RAGPipeline(
+        retriever=retriever,
+        generator=generator,
+    )
+
+    response = rag.ask(
+        question="What is the leave policy?",
+    )
+
+    assert response.answer == (
+        "I don't have enough information in the provided "
+        "documents to answer this question."
+    )
+    assert response.sources == []
+
+
+def test_rag_pipeline_logs_request_id(caplog):
+    retriever = FakeRetriever()
+    generator = FakeGenerator()
+
+    rag = RAGPipeline(
+        retriever=retriever,
+        generator=generator,
+    )
+
+    request_id = "test-request-123"
+
+    with caplog.at_level(logging.INFO, logger="app.rag.pipeline"):
+        rag.ask(
+            question="How many annual leave days do employees receive?",
+            request_id=request_id,
+        )
+
+    assert any(
+        "RAG retrieval completed" in record.message
+        and request_id in record.message
+        for record in caplog.records
+    )
+
+    assert any(
+        "RAG generation completed" in record.message
+        and request_id in record.message
+        for record in caplog.records
+    )

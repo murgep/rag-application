@@ -3,8 +3,9 @@ from app.generation.generator import Generator
 from app.rag.pipeline import RAGPipeline
 from app.retrieval.pg_vector_store import PostgreSQLVectorStore
 from app.retrieval.retriever import Retriever
+import pytest
 
-
+@pytest.mark.integration
 def test_real_rag():
 
     # 1. Create embedding component

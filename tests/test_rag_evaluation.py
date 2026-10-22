@@ -3,7 +3,7 @@ from app.generation.generator import Generator
 from app.rag.pipeline import RAGPipeline
 from app.retrieval.pg_vector_store import PostgreSQLVectorStore
 from app.retrieval.retriever import Retriever
-
+import pytest
 
 def create_rag_pipeline():
 
@@ -24,12 +24,13 @@ def create_rag_pipeline():
     )
 
 
+@pytest.mark.integration
 def test_known_question():
-
     rag = create_rag_pipeline()
 
     question = (
-        "How many days of annual leave do employees receive?"
+        "How many days of casual leave do full-time "
+        "employees receive per calendar year?"
     )
 
     response = rag.ask(
@@ -38,24 +39,27 @@ def test_known_question():
         similarity_threshold=0.70,
     )
 
-    print("\nKnown Question")
-    print("----------------")
-    print(f"Question: {question}")
-    print(f"Answer: {response.answer}")
-    print(f"Sources: {len(response.sources)}")
+    answer = response.answer.lower()
 
-    assert response.answer
-    assert len(response.sources) > 0
+    assert "12" in answer
+    assert "casual leave" in answer
 
+    assert any(
+    source.page_number == 2
+    and "employee_handbook_rag_retrieval_test_v2.pdf"
+    in source.source
+    for source in response.sources
+), "Expected the employee handbook PDF, page 2"
 
+@pytest.mark.integration
 def test_paraphrased_question():
 
     rag = create_rag_pipeline()
 
     question = (
-        "How much annual leave is an employee entitled "
-        "to each year?"
-    )
+    "What is the yearly casual leave allowance "
+    "for a full-time employee?"
+)
 
     response = rag.ask(
         question=question,
@@ -72,7 +76,7 @@ def test_paraphrased_question():
     assert response.answer
     assert len(response.sources) > 0
 
-
+@pytest.mark.integration
 def test_unrelated_question():
 
     rag = create_rag_pipeline()

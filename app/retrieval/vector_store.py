@@ -61,6 +61,7 @@ class VectorStore:
         self,
         query_embedding: list[float],
         top_k: int = 3,
+        department: str | None = None,
     ) -> list[tuple[DocumentChunk, float]]:
         """
         Return the top-K most similar chunks.

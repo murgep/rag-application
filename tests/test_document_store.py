@@ -14,7 +14,7 @@ file_path = (
     PROJECT_ROOT
     / "data"
     / "sample"
-    / "rag_test_mixed_pdf.pdf"
+    / "employee_handbook_rag_retrieval_test_v2.pdf"
 )
 
 document = parse_document(file_path)
