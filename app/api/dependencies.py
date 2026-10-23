@@ -1,7 +1,7 @@
-
+import logging
+import psycopg
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-
 from app.auth.authorization import (
     AuthorizationError,
     AuthorizationService,
@@ -14,6 +14,7 @@ from app.rag.pipeline import RAGPipeline
 from app.retrieval.pg_vector_store import PostgreSQLVectorStore
 from app.retrieval.retriever import Retriever
 
+logger = logging.getLogger(__name__)
 
 bearer_scheme = HTTPBearer(auto_error=False)
 
@@ -60,4 +61,18 @@ def get_current_user_permissions(
                 "message": "The user is unavailable or inactive.",
             },
             headers={"WWW-Authenticate": "Bearer"},
+        ) from None
+    
+    except psycopg.Error:
+        logger.exception(
+            "Database failure while loading user permissions; user_id=%s",
+            user_id,
+        )
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail={
+                "code": "SERVICE_UNAVAILABLE",
+                "message": "Authentication service is temporarily unavailable.",
+            },
+            headers={"Retry-After": "5"},
         ) from None

@@ -24,6 +24,9 @@ def _configuration():
     if len(secret.encode("utf-8")) < 32:
         raise TokenError("JWT_SECRET must be at least 32 bytes.")
 
+    if len(set(secret)) == 1:
+        raise TokenError("JWT_SECRET must not be a repeated-character placeholder.")
+
     issuer = os.getenv("JWT_ISSUER", "rag-local")
     audience = os.getenv("JWT_AUDIENCE", "rag-api")
 
@@ -39,6 +42,9 @@ def _configuration():
 
 
 def create_access_token(user_id: str) -> str:
+    if not isinstance(user_id, str) or not user_id.strip():
+        raise TokenError("Invalid token subject.")
+
     secret, issuer, audience, lifetime = _configuration()
 
     now = int(time.time())
@@ -77,5 +83,9 @@ def verify_access_token(token: str) -> str:
     user_id = claims.get("sub")
     if not isinstance(user_id, str) or not user_id.strip():
         raise TokenError("Invalid token subject.")
+
+    token_id = claims.get("jti")
+    if not isinstance(token_id, str) or not token_id.strip():
+        raise TokenError("Invalid token ID.")
 
     return user_id

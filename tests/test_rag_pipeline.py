@@ -1,7 +1,8 @@
+import logging
 
 from app.models.schemas import DocumentChunk
 from app.rag.pipeline import RAGPipeline
-import logging
+
 
 class FakeRetriever:
     def retrieve(
@@ -9,6 +10,7 @@ class FakeRetriever:
         query: str,
         top_k: int = 3,
         department: str | None = None,
+        departments: frozenset[str] | set[str] | None = None,
     ):
         return [
             (
@@ -34,8 +36,24 @@ class DepartmentTrackingRetriever:
         query: str,
         top_k: int = 3,
         department: str | None = None,
+        departments: frozenset[str] | set[str] | None = None,
     ):
         self.received_department = department
+        return []
+
+
+class DepartmentsTrackingRetriever:
+    def __init__(self):
+        self.received_departments = None
+
+    def retrieve(
+        self,
+        query: str,
+        top_k: int = 3,
+        department: str | None = None,
+        departments: frozenset[str] | set[str] | None = None,
+    ):
+        self.received_departments = departments
         return []
 
 
@@ -55,6 +73,7 @@ class LowSimilarityRetriever:
         query: str,
         top_k: int = 3,
         department: str | None = None,
+        departments: frozenset[str] | set[str] | None = None,
     ):
         return [
             (
@@ -94,6 +113,25 @@ def test_rag_pipeline_forwards_department():
     )
 
     assert retriever.received_department == "HR"
+
+
+def test_rag_pipeline_forwards_authorized_departments():
+    retriever = DepartmentsTrackingRetriever()
+    generator = FailingGenerator()
+
+    rag = RAGPipeline(
+        retriever=retriever,
+        generator=generator,
+    )
+
+    allowed_departments = frozenset({"HR", "Finance"})
+
+    rag.ask(
+        question="What is the company policy?",
+        departments=allowed_departments,
+    )
+
+    assert retriever.received_departments == allowed_departments
 
 
 def test_rag_pipeline():

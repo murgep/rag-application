@@ -123,3 +123,28 @@ def test_empty_user_identity_is_rejected(user_id):
         match="User identity is required",
     ):
         service.get_user_permissions(user_id)
+
+def test_database_query_failure_closes_connection(mock_database):
+    connection, cursor = mock_database
+    cursor.execute.side_effect = RuntimeError("simulated database failure")
+
+    service = AuthorizationService()
+
+    with pytest.raises(RuntimeError, match="simulated database failure"):
+        service.get_user_permissions("user-001")
+
+    connection.close.assert_called_once()
+
+
+def test_connection_failure_propagates():
+    with patch(
+        "app.auth.authorization.get_connection",
+        side_effect=RuntimeError("simulated connection failure"),
+    ):
+        service = AuthorizationService()
+
+        with pytest.raises(
+            RuntimeError,
+            match="simulated connection failure",
+        ):
+            service.get_user_permissions("user-001")

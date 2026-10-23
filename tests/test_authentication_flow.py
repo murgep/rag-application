@@ -1,10 +1,7 @@
-
-import os
-
+import psycopg
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
-
 from app.api.dependencies import (
     get_current_user_permissions,
     get_rag_pipeline,
@@ -158,4 +155,31 @@ def test_valid_token_for_user_with_no_departments_is_denied(
     )
 
     assert response.status_code == 403
+    assert rag.calls == []
+
+def test_database_failure_during_authentication_returns_503(
+    setup_client,
+    monkeypatch,
+):
+    client, rag = setup_client
+    token = create_access_token("hr-user")
+
+    def fail_permission_lookup(self, user_id):
+        raise psycopg.OperationalError("Internal database details")
+
+    monkeypatch.setattr(
+        AuthorizationService,
+        "get_user_permissions",
+        fail_permission_lookup,
+    )
+
+    response = client.post(
+        "/api/v1/ask",
+        headers={"Authorization": f"Bearer {token}"},
+        json={"question": "What is the HR policy?"},
+    )
+
+    assert response.status_code == 503
+    assert response.json()["detail"]["code"] == "SERVICE_UNAVAILABLE"
+    assert "Internal database details" not in response.text
     assert rag.calls == []
