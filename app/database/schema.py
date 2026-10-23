@@ -135,6 +135,10 @@ def create_schema() -> None:
 
             # New authorization tables.
             cursor.execute(CREATE_APP_USERS_TABLE)
+            cursor.execute("""
+    ALTER TABLE app_users
+    ADD COLUMN IF NOT EXISTS password_hash TEXT;
+""")
             cursor.execute(CREATE_USER_ROLES_TABLE)
             cursor.execute(CREATE_USER_DEPARTMENT_ACCESS_TABLE)
             cursor.execute(CREATE_USER_DEPARTMENT_INDEX)

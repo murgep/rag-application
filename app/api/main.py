@@ -1,7 +1,7 @@
 
 import logging
 import uuid
-
+from app.api.auth_routes import auth_router
 from fastapi import FastAPI, Request
 
 from app.api.routes import router, health_router
@@ -29,6 +29,6 @@ async def add_request_id(request: Request, call_next):
 
     return response
 
-
+app.include_router(auth_router, prefix="/api/v1")
 app.include_router(router, prefix="/api/v1")
 app.include_router(health_router)

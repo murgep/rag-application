@@ -8,30 +8,39 @@ class DocumentStore:
     in PostgreSQL.
     """
 
+    
     def save_document(
         self,
         document_id: str,
         filename: str,
         file_type: str,
         source: str,
+        department: str | None = None,
+        status: str = "active",
+        effective_date=None,
     ) -> None:
-        """
-        Insert a document into the documents table.
-        """
+        if status not in {"active", "inactive"}:
+            raise ValueError("status must be 'active' or 'inactive'.")
 
         query = """
-        INSERT INTO documents (
-            document_id,
-            filename,
-            file_type,
-            source
-        )
-        VALUES (%s, %s, %s, %s)
-        ON CONFLICT (document_id)
-        DO UPDATE SET
-            filename = EXCLUDED.filename,
-            file_type = EXCLUDED.file_type,
-            source = EXCLUDED.source;
+            INSERT INTO documents (
+                document_id,
+                filename,
+                file_type,
+                source,
+                department,
+                status,
+                effective_date
+            )
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
+            ON CONFLICT (document_id)
+            DO UPDATE SET
+                filename = EXCLUDED.filename,
+                file_type = EXCLUDED.file_type,
+                source = EXCLUDED.source,
+                department = EXCLUDED.department,
+                status = EXCLUDED.status,
+                effective_date = EXCLUDED.effective_date;
         """
 
         connection = get_connection()
@@ -45,6 +54,9 @@ class DocumentStore:
                         filename,
                         file_type,
                         source,
+                        department,
+                        status,
+                        effective_date,
                     ),
                 )
 
