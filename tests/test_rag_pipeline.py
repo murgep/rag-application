@@ -1,6 +1,7 @@
 import logging
 from app.models.schemas import DocumentChunk
 from app.rag.pipeline import RAGPipeline
+from app.rag.evidence_verifier import PromotionPeriodVerifier
 
 class FakeRetriever:
     def retrieve(
@@ -112,6 +113,36 @@ class MultipleLowSimilarityRetriever:
                 0.6508,
             ),
         ]
+
+class PromotionRelatedRetriever:
+    def retrieve(
+        self,
+        query: str,
+        top_k: int = 3,
+        department: str | None = None,
+        departments: frozenset[str] | set[str] | None = None,
+    ):
+        return [
+            (
+                DocumentChunk(
+                    chunk_id="promotion-chunk-001",
+                    document_id="employee-handbook",
+                    text=(
+                        "Promotion decisions consider demonstrated "
+                        "capability at the next level, sustained "
+                        "performance, role availability, and approval "
+                        "from the department head. Time in role alone "
+                        "does not guarantee promotion."
+                    ),
+                    page_number=4,
+                    source="employee_handbook.pdf",
+                    extraction_method="text",
+                ),
+                0.7408,
+            )
+        ]
+
+
 class FailingGenerator:
     def generate(self, question: str, context: str):
         raise AssertionError(
@@ -244,9 +275,6 @@ def test_rag_pipeline_logs_request_id(caplog):
         and request_id in record.message
         for record in caplog.records
     )
-
-
-
 def test_rag_pipeline_abstains_when_all_results_are_below_threshold():
     retriever = MultipleLowSimilarityRetriever()
     generator = FailingGenerator()
@@ -258,6 +286,30 @@ def test_rag_pipeline_abstains_when_all_results_are_below_threshold():
 
     response = rag.ask(
         question="What is the company's policy for working on Mars?",
+        top_k=3,
+        similarity_threshold=0.70,
+    )
+
+    assert response.answer == (
+        "I don't have enough information in the provided "
+        "documents to answer this question."
+    )
+    assert response.sources == []
+def test_rag_pipeline_does_not_invent_promotion_eligibility_period():
+    retriever = PromotionRelatedRetriever()
+    generator = FailingGenerator()
+
+    rag = RAGPipeline(
+        retriever=retriever,
+        generator=generator,
+        evidence_verifier=PromotionPeriodVerifier(),
+    )
+
+    response = rag.ask(
+        question=(
+            "What minimum number of months must an employee "
+            "work before becoming eligible for promotion?"
+        ),
         top_k=3,
         similarity_threshold=0.70,
     )

@@ -78,6 +78,7 @@ EVALUATION_CASES = [
     },
 ]
 
+
 UNSUPPORTED_EVALUATION_CASES = [
     {
         "id": "mars_work_policy",
@@ -85,6 +86,34 @@ UNSUPPORTED_EVALUATION_CASES = [
     },
     {
         "id": "jupiter_underwater_offices",
-        "question": "How many underwater offices does the company operate on Jupiter?",
+        "question": (
+            "How many underwater offices does the company operate on Jupiter?"
+        ),
+    },
+    {
+        "id": "parental_leave",
+        "question": (
+            "How many weeks of paid parental leave do employees receive?"
+        ),
+    },
+    {
+        "id": "bonus_policy",
+        "question": (
+            "What is the annual performance bonus percentage for each job level?"
+        ),
+    },
+    {
+        "id": "relocation_allowance",
+        "question": (
+            "How much relocation allowance is provided to employees moving "
+            "to another city?"
+        ),
+    },
+    {
+        "id": "promotion_eligibility",
+        "question": (
+            "What minimum number of months must an employee work before "
+            "becoming eligible for promotion?"
+        ),
     },
 ]

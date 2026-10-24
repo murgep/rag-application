@@ -5,7 +5,11 @@ import time
 from app.generation.generator import Generator
 from app.models.schemas import RAGResponse, RAGSource
 from app.retrieval.retriever import Retriever
-
+from app.rag.evidence_verifier import (
+    ABSTENTION_ANSWER,
+    AlwaysSufficientVerifier,
+    EvidenceVerifier,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -17,9 +21,13 @@ class RAGPipeline:
         self,
         retriever: Retriever,
         generator: Generator,
+        evidence_verifier: EvidenceVerifier | None = None,
     ):
         self.retriever = retriever
         self.generator = generator
+        self.evidence_verifier = (
+        evidence_verifier or AlwaysSufficientVerifier()
+    )
 
     def ask(
         self,
@@ -68,6 +76,15 @@ class RAGPipeline:
             for chunk, score in results
             if score >= similarity_threshold
         ]
+
+        if filtered_results and not self.evidence_verifier.is_sufficient(
+    question=question,
+    chunks=[chunk for chunk, _ in filtered_results],
+):
+            return RAGResponse(
+        answer=ABSTENTION_ANSWER,
+        sources=[],
+    )
 
         if not filtered_results:
             return RAGResponse(
