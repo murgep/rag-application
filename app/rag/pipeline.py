@@ -26,8 +26,8 @@ class RAGPipeline:
         self.retriever = retriever
         self.generator = generator
         self.evidence_verifier = (
-        evidence_verifier or AlwaysSufficientVerifier()
-    )
+evidence_verifier or AlwaysSufficientVerifier()
+)
 
     def ask(
         self,
@@ -88,12 +88,9 @@ class RAGPipeline:
 
         if not filtered_results:
             return RAGResponse(
-                answer=(
-                    "I don't have enough information in the provided "
-                    "documents to answer this question."
-                ),
-                sources=[],
-            )
+        answer=ABSTENTION_ANSWER,
+        sources=[],
+    )
 
         context_parts = []
 

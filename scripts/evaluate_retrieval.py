@@ -3,7 +3,7 @@ from app.embeddings.embedder import Embedder
 from app.retrieval.pg_vector_store import PostgreSQLVectorStore
 from app.retrieval.retriever import Retriever
 from tests.evaluation_data import EVALUATION_CASES
-from tests.test_retrieval_metrics import (
+from app.evaluation.retrieval_metrics import (
     hit_at_k,
     reciprocal_rank,
     relevance_at_ranks,

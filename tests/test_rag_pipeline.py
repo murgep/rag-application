@@ -24,6 +24,40 @@ class FakeRetriever:
                 0.95,
             )
         ]
+
+class MultiChunkFakeRetriever:
+    def retrieve(
+        self,
+        query: str,
+        top_k: int = 3,
+        department: str | None = None,
+        departments: frozenset[str] | set[str] | None = None,
+    ):
+        return [
+            (
+                DocumentChunk(
+                    chunk_id="chunk-001",
+                    document_id="hr-policy",
+                    text="Employees receive 24 days of paid annual leave.",
+                    page_number=2,
+                    source="hr_policy.pdf",
+                    extraction_method="text",
+                ),
+                0.95,
+            ),
+            (
+                DocumentChunk(
+                    chunk_id="chunk-002",
+                    document_id="hr-policy",
+                    text="Annual leave requests should be submitted in advance.",
+                    page_number=3,
+                    source="hr_policy.pdf",
+                    extraction_method="text",
+                ),
+                0.88,
+            ),
+        ]
+
 class DepartmentTrackingRetriever:
     def __init__(self):
         self.received_department = None
@@ -319,3 +353,28 @@ def test_rag_pipeline_does_not_invent_promotion_eligibility_period():
         "documents to answer this question."
     )
     assert response.sources == []
+
+
+def test_rag_pipeline_returns_sources_for_each_retrieved_chunk():
+    rag = RAGPipeline(
+        retriever=MultiChunkFakeRetriever(),
+        generator=FakeGenerator(),
+    )
+
+    response = rag.ask(
+        question="How many annual leave days do employees receive?",
+        top_k=3,
+        similarity_threshold=0.70,
+    )
+
+    assert len(response.sources) == 2
+
+    assert response.sources[0].document_id == "hr-policy"
+    assert response.sources[0].source == "hr_policy.pdf"
+    assert response.sources[0].page_number == 2
+    assert response.sources[0].similarity == 0.95
+
+    assert response.sources[1].document_id == "hr-policy"
+    assert response.sources[1].source == "hr_policy.pdf"
+    assert response.sources[1].page_number == 3
+    assert response.sources[1].similarity == 0.88
