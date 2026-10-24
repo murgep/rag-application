@@ -54,4 +54,37 @@ EVALUATION_CASES = [
             "employee_handbook_rag_retrieval_test_v2_p6_c4",
         ],
     },
+    {
+        "id": "casual_leave_paraphrase",
+        "question": (
+            "What is the yearly casual leave allowance for a full-time "
+            "employee?"
+        ),
+        "relevant_chunk_ids": [
+            "employee_handbook_rag_retrieval_test_v2_p2_c3",
+            "employee_handbook_rag_retrieval_test_v2_p6_c1",
+        ],
+    },
+    {
+        "id": "sick_leave_paraphrase",
+        "question": (
+            "How many days off for illness are provided annually to "
+            "employees?"
+        ),
+        "relevant_chunk_ids": [
+            "employee_handbook_rag_retrieval_test_v2_p2_c4",
+            "employee_handbook_rag_retrieval_test_v2_p6_c1",
+        ],
+    },
+]
+
+UNSUPPORTED_EVALUATION_CASES = [
+    {
+        "id": "mars_work_policy",
+        "question": "What is the company's policy for working on Mars?",
+    },
+    {
+        "id": "jupiter_underwater_offices",
+        "question": "How many underwater offices does the company operate on Jupiter?",
+    },
 ]

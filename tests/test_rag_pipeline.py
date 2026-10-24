@@ -1,8 +1,6 @@
 import logging
-
 from app.models.schemas import DocumentChunk
 from app.rag.pipeline import RAGPipeline
-
 
 class FakeRetriever:
     def retrieve(
@@ -25,8 +23,6 @@ class FakeRetriever:
                 0.95,
             )
         ]
-
-
 class DepartmentTrackingRetriever:
     def __init__(self):
         self.received_department = None
@@ -40,8 +36,6 @@ class DepartmentTrackingRetriever:
     ):
         self.received_department = department
         return []
-
-
 class DepartmentsTrackingRetriever:
     def __init__(self):
         self.received_departments = None
@@ -55,8 +49,6 @@ class DepartmentsTrackingRetriever:
     ):
         self.received_departments = departments
         return []
-
-
 class FakeGenerator:
     def generate(self, question: str, context: str):
         assert question == (
@@ -88,8 +80,38 @@ class LowSimilarityRetriever:
                 0.30,
             )
         ]
-
-
+class MultipleLowSimilarityRetriever:
+    def retrieve(
+        self,
+        query: str,
+        top_k: int = 3,
+        department: str | None = None,
+        departments: frozenset[str] | set[str] | None = None,
+    ):
+        return [
+            (
+                DocumentChunk(
+                    chunk_id="chunk-low-001",
+                    document_id="unrelated-document-1",
+                    text="Company principles and general information.",
+                    page_number=1,
+                    source="unrelated_1.pdf",
+                    extraction_method="text",
+                ),
+                0.6712,
+            ),
+            (
+                DocumentChunk(
+                    chunk_id="chunk-low-002",
+                    document_id="unrelated-document-2",
+                    text="General document control information.",
+                    page_number=1,
+                    source="unrelated_2.pdf",
+                    extraction_method="text",
+                ),
+                0.6508,
+            ),
+        ]
 class FailingGenerator:
     def generate(self, question: str, context: str):
         raise AssertionError(
@@ -113,8 +135,6 @@ def test_rag_pipeline_forwards_department():
     )
 
     assert retriever.received_department == "HR"
-
-
 def test_rag_pipeline_forwards_authorized_departments():
     retriever = DepartmentsTrackingRetriever()
     generator = FailingGenerator()
@@ -132,8 +152,6 @@ def test_rag_pipeline_forwards_authorized_departments():
     )
 
     assert retriever.received_departments == allowed_departments
-
-
 def test_rag_pipeline():
     retriever = FakeRetriever()
     generator = FakeGenerator()
@@ -198,8 +216,6 @@ def test_rag_pipeline_with_empty_retrieval_results():
         "documents to answer this question."
     )
     assert response.sources == []
-
-
 def test_rag_pipeline_logs_request_id(caplog):
     retriever = FakeRetriever()
     generator = FakeGenerator()
@@ -228,3 +244,26 @@ def test_rag_pipeline_logs_request_id(caplog):
         and request_id in record.message
         for record in caplog.records
     )
+
+
+
+def test_rag_pipeline_abstains_when_all_results_are_below_threshold():
+    retriever = MultipleLowSimilarityRetriever()
+    generator = FailingGenerator()
+
+    rag = RAGPipeline(
+        retriever=retriever,
+        generator=generator,
+    )
+
+    response = rag.ask(
+        question="What is the company's policy for working on Mars?",
+        top_k=3,
+        similarity_threshold=0.70,
+    )
+
+    assert response.answer == (
+        "I don't have enough information in the provided "
+        "documents to answer this question."
+    )
+    assert response.sources == []
