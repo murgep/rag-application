@@ -21,6 +21,14 @@ RUN python -m pip install --upgrade pip \
 COPY app/ ./app/
 COPY scripts/ ./scripts/
 
+# Create an unprivileged user for running the application.
+RUN groupadd --system appuser \
+    && useradd --system --gid appuser --home-dir /app appuser \
+    && chown -R appuser:appuser /app
+
+# Run the API as a non-root user.
+USER appuser
+
 EXPOSE 8000
 
 CMD ["uvicorn", "app.api.main:app", "--host", "0.0.0.0", "--port", "8000"]
