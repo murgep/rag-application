@@ -77,4 +77,6 @@ jobs:
         env:
           PYTHONPATH: ${{ github.workspace }}
         run: python -m pytest -q
+      - name: Build Docker image
+        run: docker build -t rag-application:ci .
 
