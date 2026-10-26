@@ -74,4 +74,7 @@ jobs:
         run: python scripts/init_database.py
 
       - name: Run test suite
-        run: pytest -q
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+        run: python -m pytest -q
+
