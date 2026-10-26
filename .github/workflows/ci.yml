@@ -69,6 +69,8 @@ jobs:
           pip install pytest
 
       - name: Initialize database schema
+        env:
+          PYTHONPATH: ${{ github.workspace }}
         run: python scripts/init_database.py
 
       - name: Run test suite
