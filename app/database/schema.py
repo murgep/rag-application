@@ -1,4 +1,3 @@
-
 from app.database.connection import get_connection
 
 
@@ -11,6 +10,7 @@ CREATE TABLE IF NOT EXISTS documents (
     department TEXT,
     status TEXT NOT NULL DEFAULT 'active',
     effective_date DATE,
+    is_shared BOOLEAN NOT NULL DEFAULT FALSE,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 """
@@ -118,7 +118,7 @@ def create_schema() -> None:
         with connection.cursor() as cursor:
             cursor.execute("CREATE EXTENSION IF NOT EXISTS vector;")
 
-            # Existing RAG tables: preserve current behavior and data.
+            # Create or update the documents table without losing existing data.
             cursor.execute(CREATE_DOCUMENTS_TABLE)
 
             cursor.execute("""
@@ -126,19 +126,24 @@ def create_schema() -> None:
                 ADD COLUMN IF NOT EXISTS department TEXT,
                 ADD COLUMN IF NOT EXISTS status TEXT
                     NOT NULL DEFAULT 'active',
-                ADD COLUMN IF NOT EXISTS effective_date DATE;
+                ADD COLUMN IF NOT EXISTS effective_date DATE,
+                ADD COLUMN IF NOT EXISTS is_shared BOOLEAN
+                    NOT NULL DEFAULT FALSE;
             """)
 
+            # Create chunks and indexes.
             cursor.execute(CREATE_CHUNKS_TABLE)
             cursor.execute(CREATE_CHUNKS_INDEX)
             cursor.execute(CREATE_DEPARTMENT_INDEX)
 
-            # New authorization tables.
+            # Create authorization tables.
             cursor.execute(CREATE_APP_USERS_TABLE)
+
             cursor.execute("""
-    ALTER TABLE app_users
-    ADD COLUMN IF NOT EXISTS password_hash TEXT;
-""")
+                ALTER TABLE app_users
+                ADD COLUMN IF NOT EXISTS password_hash TEXT;
+            """)
+
             cursor.execute(CREATE_USER_ROLES_TABLE)
             cursor.execute(CREATE_USER_DEPARTMENT_ACCESS_TABLE)
             cursor.execute(CREATE_USER_DEPARTMENT_INDEX)
