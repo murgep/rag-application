@@ -10,6 +10,7 @@ class FakeRetriever:
         top_k: int = 3,
         department: str | None = None,
         departments: frozenset[str] | set[str] | None = None,
+        request_id: str | None = None,
     ):
         return [
             (
@@ -32,6 +33,7 @@ class MultiChunkFakeRetriever:
         top_k: int = 3,
         department: str | None = None,
         departments: frozenset[str] | set[str] | None = None,
+        request_id: str | None = None,
     ):
         return [
             (
@@ -68,6 +70,7 @@ class DepartmentTrackingRetriever:
         top_k: int = 3,
         department: str | None = None,
         departments: frozenset[str] | set[str] | None = None,
+        request_id: str | None = None,
     ):
         self.received_department = department
         return []
@@ -81,11 +84,17 @@ class DepartmentsTrackingRetriever:
         top_k: int = 3,
         department: str | None = None,
         departments: frozenset[str] | set[str] | None = None,
+        request_id: str | None = None,
     ):
         self.received_departments = departments
         return []
 class FakeGenerator:
-    def generate(self, question: str, context: str):
+    def generate(
+        self,
+        question: str,
+        context: str,
+        request_id: str | None = None,
+    ):
         assert question == (
             "How many annual leave days do employees receive?"
         )
@@ -101,6 +110,7 @@ class LowSimilarityRetriever:
         top_k: int = 3,
         department: str | None = None,
         departments: frozenset[str] | set[str] | None = None,
+        request_id: str | None = None,
     ):
         return [
             (
@@ -122,6 +132,7 @@ class MultipleLowSimilarityRetriever:
         top_k: int = 3,
         department: str | None = None,
         departments: frozenset[str] | set[str] | None = None,
+        request_id: str | None = None,
     ):
         return [
             (
@@ -155,6 +166,7 @@ class PromotionRelatedRetriever:
         top_k: int = 3,
         department: str | None = None,
         departments: frozenset[str] | set[str] | None = None,
+        request_id: str | None = None,
     ):
         return [
             (
@@ -178,7 +190,12 @@ class PromotionRelatedRetriever:
 
 
 class FailingGenerator:
-    def generate(self, question: str, context: str):
+    def generate(
+        self,
+        question: str,
+        context: str,
+        request_id: str | None = None,
+    ):
         raise AssertionError(
             "Generator should not be called when "
             "no chunks pass the similarity threshold."

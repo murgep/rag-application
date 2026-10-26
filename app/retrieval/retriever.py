@@ -39,6 +39,7 @@ class Retriever:
         top_k: int = 3,
         department: str | None = None,
         departments: frozenset[str] | set[str] | None = None,
+        request_id: str | None = None,
     ) -> list[tuple[DocumentChunk, float]]:
         """Embed a query and retrieve matching document chunks."""
 
@@ -50,13 +51,16 @@ class Retriever:
                 "Provide either department or departments, not both."
             )
 
+        correlation_id = request_id or "-"
+
         # Measure query embedding latency.
         embedding_start = time.perf_counter()
         query_embedding = self.embedder.embed_text(query)
         embedding_duration = time.perf_counter() - embedding_start
 
         logger.info(
-            "Query embedding completed; duration=%.3f seconds",
+            "Query embedding completed; request_id=%s duration=%.3f seconds",
+            correlation_id,
             embedding_duration,
         )
 
@@ -79,7 +83,9 @@ class Retriever:
         search_duration = time.perf_counter() - search_start
 
         logger.info(
-            "Vector search completed; duration=%.3f seconds results=%d",
+            "Vector search completed; request_id=%s "
+            "duration=%.3f seconds results=%d",
+            correlation_id,
             search_duration,
             len(results),
         )

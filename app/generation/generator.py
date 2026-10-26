@@ -1,11 +1,14 @@
 import os
 import logging
+
 from dotenv import load_dotenv
 from google import genai
 from google.genai import types
 
 load_dotenv()
+
 logger = logging.getLogger(__name__)
+
 
 class Generator:
     """
@@ -21,27 +24,42 @@ class Generator:
             )
 
         self.client = genai.Client(
-    api_key=api_key,
-    http_options=types.HttpOptions(
-        timeout=90_000,
-        retry_options=types.HttpRetryOptions(
-            attempts=2,
-            initial_delay=1.0,
-            max_delay=4.0,
-            exp_base=2.0,
-            jitter=1.0,
-            http_status_codes=[500, 502, 503, 504],
-        ),
-    ),
-)
+            api_key=api_key,
+            http_options=types.HttpOptions(
+                timeout=90_000,
+                retry_options=types.HttpRetryOptions(
+                    attempts=2,
+                    initial_delay=1.0,
+                    max_delay=4.0,
+                    exp_base=2.0,
+                    jitter=1.0,
+                    http_status_codes=[500, 502, 503, 504],
+                ),
+            ),
+        )
 
         self.model = "gemini-3.5-flash"
 
-    
-    def generate(self, question: str, context: str) -> str:
+    def generate(
+        self,
+        question: str,
+        context: str,
+        request_id: str | None = None,
+    ) -> str:
         """
         Generate a grounded answer using the provided context.
-        Raises an exception if generation fails or returns no answer.
+
+        Args:
+            question: The user's question.
+            context: Retrieved document context.
+            request_id: Optional ID for tracing requests across logs.
+
+        Returns:
+            The generated answer.
+
+        Raises:
+            RuntimeError: If generation returns no answer.
+            Exception: Re-raises generation service errors.
         """
 
         prompt = f"""
@@ -81,11 +99,21 @@ ANSWER:
             answer = response.text if response else None
 
             if not answer or not answer.strip():
-                logger.error("Gemini returned an empty response.")
-                raise RuntimeError("The generation service returned an empty response.")
+                logger.error(
+                    "Gemini returned an empty response. request_id=%s",
+                    request_id,
+                )
+                raise RuntimeError(
+                    "The generation service returned an empty response."
+                )
 
             return answer.strip()
 
         except Exception:
             logger.exception("Gemini answer generation failed.")
+            if request_id:
+                logger.error(
+                    "Generation failure request_id=%s",
+                    request_id,
+                )
             raise
