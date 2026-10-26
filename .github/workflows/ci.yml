@@ -77,6 +77,53 @@ jobs:
         env:
           PYTHONPATH: ${{ github.workspace }}
         run: python -m pytest -q
+
       - name: Build Docker image
         run: docker build -t rag-application:ci .
 
+  container-runtime:
+    name: Container Runtime Smoke Tests
+    runs-on: ubuntu-latest
+    needs: test
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Create CI environment file
+        run: |
+          cat > .env <<'EOF'
+          APP_ENV=development
+          LOCAL_AUTH_ENABLED=true
+          JWT_SECRET=ci-test-secret-that-is-not-used-in-production
+          JWT_ISSUER=rag-local
+          JWT_AUDIENCE=rag-api
+          JWT_ACCESS_TOKEN_MINUTES=15
+          DATABASE_HOST=localhost
+          DATABASE_PORT=5432
+          DATABASE_NAME=ragdb
+          DATABASE_USER=postgres
+          DATABASE_PASSWORD=postgres
+          GEMINI_API_KEY=
+          EOF
+
+      - name: Start containers and wait for health
+        run: docker compose up --build -d --wait --wait-timeout 120
+
+      - name: Verify API liveness
+        run: |
+          curl --fail --show-error http://localhost:8000/health
+
+      - name: Verify database readiness
+        run: |
+          curl --fail --show-error http://localhost:8000/readiness
+
+      - name: Show container logs on failure
+        if: failure()
+        run: |
+          docker compose ps
+          docker compose logs --no-color
+
+      - name: Stop containers
+        if: always()
+        run: docker compose down -v

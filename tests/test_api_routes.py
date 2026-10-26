@@ -1,7 +1,7 @@
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
-
+from unittest.mock import MagicMock, patch
 from app.api.dependencies import (
     get_current_user_permissions,
     get_rag_pipeline,
@@ -235,3 +235,28 @@ def test_ask_endpoint_requires_authentication_by_default():
     assert response.status_code == 401
     assert response.json()["detail"]["code"] == "AUTHENTICATION_REQUIRED"
     assert rag.calls == []
+def test_health_endpoint_returns_healthy():
+    client = TestClient(create_test_app())
+
+    response = client.get("/health")
+
+    assert response.status_code == 200
+    assert response.json() == {"status": "healthy"}
+
+
+def test_readiness_endpoint_returns_ready_when_database_is_available():
+    client = TestClient(create_test_app())
+
+    mock_cursor = MagicMock()
+    mock_connection = MagicMock()
+
+    mock_connection.cursor.return_value.__enter__.return_value = mock_cursor
+
+    with patch("app.api.routes.get_connection") as mock_get_connection:
+        mock_get_connection.return_value.__enter__.return_value = mock_connection
+
+        response = client.get("/readiness")
+
+    assert response.status_code == 200
+    assert response.json() == {"status": "ready"}
+    mock_cursor.execute.assert_called_once_with("SELECT 1")
