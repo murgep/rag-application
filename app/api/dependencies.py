@@ -11,6 +11,7 @@ from app.auth.tokens import TokenError, verify_access_token
 from app.embeddings.embedder import Embedder
 from app.generation.generator import Generator
 from app.rag.pipeline import RAGPipeline
+from app.rag.evidence_verifier import PromotionPeriodVerifier
 from app.retrieval.pg_vector_store import PostgreSQLVectorStore
 from app.retrieval.retriever import Retriever
 
@@ -23,9 +24,17 @@ def get_rag_pipeline() -> RAGPipeline:
     """Build the RAG pipeline and its dependencies."""
     embedder = Embedder()
     vector_store = PostgreSQLVectorStore()
-    retriever = Retriever(embedder=embedder, vector_store=vector_store)
+    retriever = Retriever(
+        embedder=embedder,
+        vector_store=vector_store,
+    )
     generator = Generator()
-    return RAGPipeline(retriever=retriever, generator=generator)
+
+    return RAGPipeline(
+        retriever=retriever,
+        generator=generator,
+        evidence_verifier=PromotionPeriodVerifier(),
+    )
 
 
 def get_current_user_permissions(

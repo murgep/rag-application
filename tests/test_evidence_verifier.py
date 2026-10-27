@@ -1,4 +1,3 @@
-
 from app.models.schemas import DocumentChunk
 from app.rag.evidence_verifier import PromotionPeriodVerifier
 
@@ -66,4 +65,63 @@ def test_accepts_non_promotion_question_with_evidence():
     assert verifier.is_sufficient(
         question="How many annual leave days do employees receive?",
         chunks=chunks,
+    )
+
+
+def test_rejects_empty_evidence_for_promotion_question():
+    verifier = PromotionPeriodVerifier()
+
+    assert not verifier.is_sufficient(
+        question=(
+            "What minimum number of months must an employee work "
+            "before becoming eligible for promotion?"
+        ),
+        chunks=[],
+    )
+
+
+def test_rejects_unrelated_month_period_for_promotion_question():
+    verifier = PromotionPeriodVerifier()
+
+    chunks = [
+        make_chunk(
+            "Employees receive a performance review every 12 months. "
+            "Promotion decisions depend on performance and role availability."
+        )
+    ]
+
+    assert not verifier.is_sufficient(
+        question=(
+            "What minimum number of months must an employee work "
+            "before becoming eligible for promotion?"
+        ),
+        chunks=chunks,
+    )
+
+
+def test_accepts_alternative_promotion_period_wording():
+    verifier = PromotionPeriodVerifier()
+
+    chunks = [
+        make_chunk(
+            "An employee becomes eligible for promotion after "
+            "completing 12 months in the current position."
+        )
+    ]
+
+    assert verifier.is_sufficient(
+        question=(
+            "What minimum number of months must an employee work "
+            "before becoming eligible for promotion?"
+        ),
+        chunks=chunks,
+    )
+
+
+def test_rejects_empty_evidence_for_non_promotion_question():
+    verifier = PromotionPeriodVerifier()
+
+    assert not verifier.is_sufficient(
+        question="How many annual leave days do employees receive?",
+        chunks=[],
     )
