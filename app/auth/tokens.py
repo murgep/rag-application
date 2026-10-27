@@ -19,9 +19,23 @@ def _configuration():
     if os.getenv("LOCAL_AUTH_ENABLED", "").lower() != "true":
         raise TokenError("Local authentication is disabled.")
 
-    secret = os.getenv("JWT_SECRET", "")
+    
+    secret = os.getenv("JWT_SECRET", "").strip()
     if len(secret.encode("utf-8")) < 32:
         raise TokenError("JWT_SECRET must be at least 32 bytes.")
+
+    placeholder_values = {
+        "replace-with-a-secure-random-secret-at-least-32-bytes",
+        "your-secret",
+        "change-me",
+        "placeholder",
+    }
+
+    if secret.lower() in placeholder_values or any(
+        marker in secret.lower()
+        for marker in ("replace-with-", "your-secret", "change-me", "placeholder")
+    ):
+        raise TokenError("JWT_SECRET must be replaced with a secure random secret.")
 
     if len(set(secret)) == 1:
         raise TokenError("JWT_SECRET must not be a repeated-character placeholder.")

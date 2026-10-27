@@ -200,8 +200,28 @@ def test_invalid_user_id_is_rejected_when_creating_token(user_id):
     with pytest.raises(TokenError, match="Invalid token subject"):
         create_access_token(user_id)
 
-def test_placeholder_jwt_secret_is_rejected(monkeypatch):
-    monkeypatch.setenv("JWT_SECRET", "x" * 32)
+@pytest.mark.parametrize(
+    "secret",
+    [
+        "x" * 32,
+        "replace-with-a-secure-random-secret-at-least-32-bytes",
+        "a-secure-looking-but-placeholder-value",
+        "",
+        "too-short",
+    ],
+)
+def test_weak_or_placeholder_jwt_secrets_are_rejected(monkeypatch, secret):
+    monkeypatch.setenv("JWT_SECRET", secret)
 
     with pytest.raises(TokenError):
         create_access_token("user-123")
+
+
+def test_secure_random_jwt_secret_is_accepted(monkeypatch):
+    import secrets
+
+    monkeypatch.setenv("JWT_SECRET", secrets.token_urlsafe(48))
+
+    token = create_access_token("user-123")
+
+    assert verify_access_token(token) == "user-123"
