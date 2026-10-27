@@ -1,4 +1,3 @@
-
 import os
 import time
 import uuid
@@ -39,6 +38,12 @@ def _configuration():
         raise TokenError("Token lifetime must be between 1 and 60 minutes.")
 
     return secret, issuer, audience, lifetime
+
+
+def get_access_token_lifetime_seconds() -> int:
+    """Return the validated access-token lifetime in seconds."""
+    _, _, _, lifetime = _configuration()
+    return lifetime * 60
 
 
 def create_access_token(user_id: str) -> str:
