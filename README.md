@@ -251,4 +251,4 @@ Exact files may evolve as the project grows.
 
 ## License
 
-Add a license file and update this section if you intend to distribute the project publicly.
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
