@@ -51,15 +51,15 @@ def test_known_question():
     for source in response.sources
 ), "Expected the employee handbook PDF, page 2"
 
+
 @pytest.mark.integration
 def test_paraphrased_question():
-
     rag = create_rag_pipeline()
 
     question = (
-    "What is the yearly casual leave allowance "
-    "for a full-time employee?"
-)
+        "What is the yearly casual leave allowance "
+        "for a full-time employee?"
+    )
 
     response = rag.ask(
         question=question,
@@ -67,14 +67,22 @@ def test_paraphrased_question():
         similarity_threshold=0.70,
     )
 
-    print("\nParaphrased Question")
-    print("----------------------")
-    print(f"Question: {question}")
-    print(f"Answer: {response.answer}")
-    print(f"Sources: {len(response.sources)}")
+    answer = response.answer.lower()
 
-    assert response.answer
-    assert len(response.sources) > 0
+    assert "12" in answer, (
+        f"Expected the answer to mention 12 days, got: "
+        f"{response.answer}"
+    )
+    assert "casual leave" in answer, (
+        f"Expected the answer to mention casual leave, got: "
+        f"{response.answer}"
+    )
+    assert any(
+        source.page_number == 2
+        and "employee_handbook_rag_retrieval_test_v2.pdf"
+        in source.source
+        for source in response.sources
+    ), "Expected the employee handbook PDF, page 2"
 
 @pytest.mark.integration
 def test_unrelated_question():

@@ -6,8 +6,9 @@ pypdf
 python-docx
 pymupdf
 pytesseract
-sentence-transformers
 google-genai
 numpy
 pytest
 psycopg[binary]
+PyJWT>=2.10,<3
+pwdlib[argon2]>=0.2,<1

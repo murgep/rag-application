@@ -1,8 +1,12 @@
-
+import logging
+import time
 from typing import Protocol
 
 from app.embeddings.embedder import Embedder
 from app.models.schemas import DocumentChunk
+
+
+logger = logging.getLogger(__name__)
 
 
 class SearchableVectorStore(Protocol):
@@ -35,6 +39,7 @@ class Retriever:
         top_k: int = 3,
         department: str | None = None,
         departments: frozenset[str] | set[str] | None = None,
+        request_id: str | None = None,
     ) -> list[tuple[DocumentChunk, float]]:
         """Embed a query and retrieve matching document chunks."""
 
@@ -46,17 +51,43 @@ class Retriever:
                 "Provide either department or departments, not both."
             )
 
+        correlation_id = request_id or "-"
+
+        # Measure query embedding latency.
+        embedding_start = time.perf_counter()
         query_embedding = self.embedder.embed_text(query)
+        embedding_duration = time.perf_counter() - embedding_start
+
+        logger.info(
+            "Query embedding completed; request_id=%s duration=%.3f seconds",
+            correlation_id,
+            embedding_duration,
+        )
+
+        # Measure vector-store search latency.
+        search_start = time.perf_counter()
 
         if departments is not None:
-            return self.vector_store.search(
+            results = self.vector_store.search(
                 query_embedding=query_embedding,
                 top_k=top_k,
                 departments=departments,
             )
+        else:
+            results = self.vector_store.search(
+                query_embedding=query_embedding,
+                top_k=top_k,
+                department=department,
+            )
 
-        return self.vector_store.search(
-            query_embedding=query_embedding,
-            top_k=top_k,
-            department=department,
+        search_duration = time.perf_counter() - search_start
+
+        logger.info(
+            "Vector search completed; request_id=%s "
+            "duration=%.3f seconds results=%d",
+            correlation_id,
+            search_duration,
+            len(results),
         )
+
+        return results

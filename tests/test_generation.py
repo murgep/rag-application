@@ -1,10 +1,12 @@
-
+import os
 from unittest.mock import Mock, patch
 import pytest
 from google.genai import types
 from app.generation.generator import Generator
-
-
+@pytest.fixture(autouse=True)
+def mock_gemini_api_key(monkeypatch):
+    monkeypatch.setenv("GEMINI_API_KEY", "test-api-key")
+    
 def test_generation():
     mock_response = Mock()
     mock_response.text = (

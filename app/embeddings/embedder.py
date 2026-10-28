@@ -29,8 +29,19 @@ class Embedder:
             )
 
         self.client = genai.Client(
-            api_key=api_key
-        )
+    api_key=api_key,
+    http_options=types.HttpOptions(
+        timeout=30_000,
+        retry_options=types.HttpRetryOptions(
+            attempts=2,
+            initial_delay=1.0,
+            max_delay=4.0,
+            exp_base=2.0,
+            jitter=1.0,
+            http_status_codes=[500, 502, 503, 504],
+        ),
+    ),
+)
 
     def embed_text(self, text: str) -> list[float]:
         """

@@ -91,7 +91,10 @@ class PostgreSQLVectorStore:
                 JOIN documents d
                     ON c.document_id = d.document_id
                 WHERE c.embedding IS NOT NULL
-                  AND d.department = ANY(%s)
+                  AND (
+                        d.department = ANY(%s)
+                        OR d.is_shared = TRUE
+                        )
                 ORDER BY c.embedding <=> %s::vector
                 LIMIT %s;
             """

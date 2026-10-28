@@ -1,11 +1,14 @@
-
 import logging
 import time
 
 from app.generation.generator import Generator
 from app.models.schemas import RAGResponse, RAGSource
 from app.retrieval.retriever import Retriever
-
+from app.rag.evidence_verifier import (
+    ABSTENTION_ANSWER,
+    AlwaysSufficientVerifier,
+    EvidenceVerifier,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -17,9 +20,13 @@ class RAGPipeline:
         self,
         retriever: Retriever,
         generator: Generator,
+        evidence_verifier: EvidenceVerifier | None = None,
     ):
         self.retriever = retriever
         self.generator = generator
+        self.evidence_verifier = (
+            evidence_verifier or AlwaysSufficientVerifier()
+        )
 
     def ask(
         self,
@@ -38,6 +45,8 @@ class RAGPipeline:
                 "Provide either department or departments, not both."
             )
 
+        correlation_id = request_id or "-"
+
         retrieval_start = time.perf_counter()
 
         if departments is not None:
@@ -45,12 +54,14 @@ class RAGPipeline:
                 query=question,
                 top_k=top_k,
                 departments=departments,
+                request_id=request_id,
             )
         else:
             results = self.retriever.retrieve(
                 query=question,
                 top_k=top_k,
                 department=department,
+                request_id=request_id,
             )
 
         retrieval_duration = time.perf_counter() - retrieval_start
@@ -58,7 +69,7 @@ class RAGPipeline:
         logger.info(
             "RAG retrieval completed; request_id=%s "
             "duration=%.3f seconds retrieved=%d chunks",
-            request_id or "-",
+            correlation_id,
             retrieval_duration,
             len(results),
         )
@@ -69,12 +80,18 @@ class RAGPipeline:
             if score >= similarity_threshold
         ]
 
+        if filtered_results and not self.evidence_verifier.is_sufficient(
+            question=question,
+            chunks=[chunk for chunk, _ in filtered_results],
+        ):
+            return RAGResponse(
+                answer=ABSTENTION_ANSWER,
+                sources=[],
+            )
+
         if not filtered_results:
             return RAGResponse(
-                answer=(
-                    "I don't have enough information in the provided "
-                    "documents to answer this question."
-                ),
+                answer=ABSTENTION_ANSWER,
                 sources=[],
             )
 
@@ -95,8 +112,9 @@ Page: {chunk.page_number}
         generation_start = time.perf_counter()
 
         answer = self.generator.generate(
-            question=question,
-            context=context,
+            question,
+            context,
+            request_id=request_id,
         )
 
         generation_duration = time.perf_counter() - generation_start
@@ -104,7 +122,7 @@ Page: {chunk.page_number}
         logger.info(
             "RAG generation completed; request_id=%s "
             "duration=%.3f seconds",
-            request_id or "-",
+            correlation_id,
             generation_duration,
         )
 
