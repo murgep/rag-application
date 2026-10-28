@@ -2,6 +2,8 @@
 
 A document-grounded question-answering API built with **FastAPI**, **PostgreSQL + pgvector**, and **Google Gemini**. Documents are parsed, split into chunks, embedded as vectors, and stored in PostgreSQL. When a user asks a question, the application retrieves relevant evidence and generates an answer grounded in that context.
 
+![RAG Application](image.png)
+
 ## Features
 
 - PDF, TXT, and DOCX parsing (OCR for scanned PDFs depends on Tesseract).
